@@ -1,28 +1,28 @@
 {
-  "name": "chat-bridge",
-  "version": "0.1.0",
-  "description": "A chat bridge between Telegram, Messenger & IRC",
-  "main": "main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rexx0520/chat-bridge.git"
-  },
-  "author": "Rex",
-  "bugs": {
-    "url": "https://github.com/rexx0520/chat-bridge/issues"
-  },
-  "homepage": "https://github.com/rexx0520/chat-bridge#readme",
-  "dependencies": {
-    "string-format": "^2.0.0",
-    "jsonfile": "^4.0.0",
-    "mime-types": "^2.1.18",
-    "node-telegram-bot-api": "^0.30.0",
-    "showdown": "^1.8.6",
-    "irc": "^0.5.2",
-    "humps": "^2.0.1",
-    "Schmavery/facebook-chat-api": "*"
-  }
+    "name": "chat-bridge",
+    "version": "0.1.0",
+    "description": "A chat bridge between Telegram, Messenger & IRC",
+    "main": "main.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node main.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rexx0520/chat-bridge.git"
+    },
+    "author": "Rex",
+    "bugs": {
+        "url": "https://github.com/rexx0520/chat-bridge/issues"
+    },
+    "homepage": "https://github.com/rexx0520/chat-bridge#readme",
+    "dependencies": {
+        "facebook-chat-api": "github:andybui01/facebook-chat-api",
+        "humps": "^2.0.1",
+        "jsonfile": "^4.0.0",
+        "mime-types": "^2.1.18",
+        "node-telegram-bot-api": "^0.30.0",
+        "showdown": "^1.8.6",
+        "string-format": "^2.0.0"
+    }
 }
