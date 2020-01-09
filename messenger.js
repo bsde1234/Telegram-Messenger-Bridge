@@ -6,7 +6,7 @@ const https = require('https');
 const fb = require("facebook-chat-api");
 const fbAccount = main.fbAccount;
 const buffer = require('request').defaults({ encoding: null });
-
+const JSON_log = require("./JSON_log");
 const format = require('string-format')
 const lang = main.lang
 
@@ -41,7 +41,9 @@ if (fs.existsSync('appstate.json')) {
     exports.id = id;
     var stopListening = api.listenMqtt((err, event) => {
       if (err) return console.error(err);
-      console.log(event)
+      
+      JSON_log(event);
+
       if (event.threadID != main.groupMsgrId) return;
       switch (event.type) {
         case "message":

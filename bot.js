@@ -4,7 +4,7 @@ const mime = require('mime-types');
 const fs = require('fs');
 const pascalize = require('humps').pascalize;
 const main = require('./main.js');
-
+const JSON_log = require('./JSON_log');
 const showdown = require('showdown');
 const sd = new showdown.Converter({
     simplifiedAutoLink: true,
@@ -283,6 +283,7 @@ getMessageBasicInfo = message => {
 
 bot.on('text', message => {
     if (message.chat.id != main.groupTgId) return;
+    JSON_log(message);
     [
         text,
         chatId,
@@ -315,6 +316,7 @@ bot.on('text', message => {
 
 bot.on('edited_message', message => {
     if (message.chat.id != main.groupTgId) return;
+    JSON_log(message);
     [
         text,
         chatId,
@@ -357,6 +359,7 @@ bot.on('edited_message', message => {
 ].forEach(x =>
     bot.on(x, message => {
         if (message.chat.id != main.groupTgId) return;
+        JSON_log(message);
         [
             text,
             chatId,
@@ -404,6 +407,7 @@ bot.on('edited_message', message => {
 
 bot.on('venue', message => {
     if (message.chat.id != main.groupTgId) return;
+    JSON_log(message);
     [
         text,
         chatId,
@@ -445,6 +449,7 @@ bot.on('venue', message => {
 
 bot.on('contact', message => {
     if (message.chat.id != main.groupTgId) return;
+    JSON_log(message);
     [
         text,
         chatId,
@@ -487,6 +492,7 @@ bot.on('contact', message => {
 
 bot.on('location', message => {
     if (message.chat.id != main.groupTgId) return;
+    JSON_log(message);
     [
         text,
         chatId,
