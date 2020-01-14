@@ -6,6 +6,7 @@ const pascalize = require('humps').pascalize;
 const main = require('./main.js');
 const JSON_log = require('./JSON_log');
 const showdown = require('showdown');
+const sharp = require('sharp');
 const sd = new showdown.Converter({
     simplifiedAutoLink: true,
     ghCodeBlocks: true
@@ -53,8 +54,6 @@ const firstUpperCase = ([first, ...rest]) =>
 
 exports.init = () =>
     bot.getMe().then(result => {
-        console.log('telegram connected');
-        console.log(result);
         exports.id = result.id;
     });
 exports.send = ({
@@ -283,7 +282,6 @@ getMessageBasicInfo = message => {
 
 bot.on('text', message => {
     if (message.chat.id != main.groupTgId) return;
-    JSON_log(message);
     [
         text,
         chatId,
@@ -316,7 +314,6 @@ bot.on('text', message => {
 
 bot.on('edited_message', message => {
     if (message.chat.id != main.groupTgId) return;
-    JSON_log(message);
     [
         text,
         chatId,
@@ -348,15 +345,95 @@ bot.on('edited_message', message => {
     );
 });
 
-[
-    'audio',
-    'document',
-    'photo',
-    'sticker',
-    'video',
-    'voice',
-    'video_note'
-].forEach(x =>
+bot.on('sticker', message => {
+    if (message.chat.id != main.groupTgId) return;
+    [
+        text,
+        chatId,
+        userId,
+        userName,
+        addition,
+        replyToId,
+        replyToName,
+        replyToText,
+        forwardFromId,
+        forwardFromName,
+        isSliced
+    ] = getMessageBasicInfo(message);
+    JSON_log(message);
+
+    var file = message['sticker'];
+    var fileId = file.file_id;
+
+    if (message['sticker'].is_animated) {
+        var extension = 'tiff';
+        setImmediate(() => {
+            var original_attachment = bot.getFileStream(fileId);
+            original_attachment.path += '.' + extension;
+            var filename = 'sticker.tiff';
+            var transformer = sharp()
+                .resize(message['sticker'].width, message['sticker'].height)
+                .tiff()
+                .toFile(filename, function(err, info) {
+                    if (err) {
+                        throw err;
+                    }
+                    var readStream = fs.createReadStream(filename);
+                    main.botMessage({
+                        chatId: chatId,
+                        userId: userId,
+                        userName: userName,
+                        text: text,
+                        replyToId: replyToId,
+                        replyToName: replyToName,
+                        forwardFromId: forwardFromId,
+                        forwardFromName: forwardFromName,
+                        replyToText: replyToText,
+                        attachment: readStream,
+                        isSliced: isSliced,
+                        attachmentType: pascalize('sticker')
+                    });
+                });
+
+            original_attachment.pipe(transformer);
+        });
+        return;
+    }
+    var extension = 'webp';
+
+    setImmediate(() => {
+        var original_attachment = bot.getFileStream(fileId);
+        original_attachment.path += '.' + extension;
+        var filename = 'sticker.png';
+        var transformer = sharp()
+            .resize(message['sticker'].width, message['sticker'].height)
+            .png()
+            .toFile(filename, function(err, info) {
+                if (err) {
+                    throw err;
+                }
+                var readStream = fs.createReadStream(filename);
+                main.botMessage({
+                    chatId: chatId,
+                    userId: userId,
+                    userName: userName,
+                    text: text,
+                    replyToId: replyToId,
+                    replyToName: replyToName,
+                    forwardFromId: forwardFromId,
+                    forwardFromName: forwardFromName,
+                    replyToText: replyToText,
+                    attachment: readStream,
+                    isSliced: isSliced,
+                    attachmentType: pascalize('sticker')
+                });
+            });
+
+        original_attachment.pipe(transformer);
+    });
+});
+
+['audio', 'document', 'photo', 'video', 'voice', 'video_note'].forEach(x =>
     bot.on(x, message => {
         if (message.chat.id != main.groupTgId) return;
         JSON_log(message);
@@ -375,18 +452,46 @@ bot.on('edited_message', message => {
         ] = getMessageBasicInfo(message);
         var file = x == 'photo' ? message[x].pop() : message[x];
         var fileId = file.file_id;
-        if (x == 'sticker') var extension = 'webp';
-        else if (x == 'video_note') var extension = 'mp4';
-        else if (x == 'photo') var extension = 'png';
-        else
+
+        if (message['animation']) {
+            var extension = 'gif';
+            setImmediate(() => {
+                var original_attachment = bot.getFileStream(fileId);
+                original_attachment.path += '.' + extension;
+                main.botMessage({
+                    chatId: chatId,
+                    userId: userId,
+                    userName: userName,
+                    text: text,
+                    replyToId: replyToId,
+                    replyToName: replyToName,
+                    forwardFromId: forwardFromId,
+                    forwardFromName: forwardFromName,
+                    replyToText: replyToText,
+                    attachment: original_attachment,
+                    isSliced: isSliced,
+                    attachmentType: pascalize('gif')
+                });
+            });
+            return;
+        }
+
+        if (x == 'video_note') {
+            var extension = 'mp4';
+        } else if (x == 'photo') {
+            var extension = 'png';
+        } else {
             var extension = file.mime_type
                 ? file.mime_type == 'audio/mpeg3'
                     ? 'mp3'
                     : mime.extension(file.mime_type)
                 : file.file_path.split('.').pop();
+        }
         setImmediate(() => {
-            var attachment = bot.getFileStream(fileId);
-            attachment.path += '.' + extension;
+            var original_attachment = bot.getFileStream(fileId);
+            original_attachment.path = message['document']
+                ? message['document'].file_name
+                : original_attachment.path + '.' + extension;
             main.botMessage({
                 chatId: chatId,
                 userId: userId,
@@ -397,7 +502,7 @@ bot.on('edited_message', message => {
                 forwardFromId: forwardFromId,
                 forwardFromName: forwardFromName,
                 replyToText: replyToText,
-                attachment: attachment,
+                attachment: original_attachment,
                 isSliced: isSliced,
                 attachmentType: pascalize(x)
             });
@@ -405,9 +510,53 @@ bot.on('edited_message', message => {
     })
 );
 
+bot.on('message', message => {
+    if (message.chat.id != main.groupTgId) return;
+    [
+        text,
+        chatId,
+        userId,
+        userName,
+        addition,
+        replyToId,
+        replyToName,
+        replyToText,
+        forwardFromId,
+        forwardFromName,
+        isSliced
+    ] = getMessageBasicInfo(message);
+
+    if (message.poll) {
+        JSON_log(message);
+        var poll_options = new Object();
+        message['poll'].options.forEach(value => {
+            var option_text = value.text;
+            var option_count = value.voter_count;
+            poll_options[option_text] = option_count;
+        });
+
+        setImmediate(() => {
+            main.botMessage({
+                chatId: chatId,
+                userId: userId,
+                userName: userName,
+                text: text,
+                replyToId: replyToId,
+                replyToName: replyToName,
+                forwardFromId: forwardFromId,
+                forwardFromName: forwardFromName,
+                replyToText: replyToText,
+                addition: addition,
+                isSliced: isSliced,
+                title: message['poll'].question,
+                options: poll_options
+            });
+        });
+    }
+});
+
 bot.on('venue', message => {
     if (message.chat.id != main.groupTgId) return;
-    JSON_log(message);
     [
         text,
         chatId,
@@ -449,7 +598,6 @@ bot.on('venue', message => {
 
 bot.on('contact', message => {
     if (message.chat.id != main.groupTgId) return;
-    JSON_log(message);
     [
         text,
         chatId,
@@ -492,7 +640,6 @@ bot.on('contact', message => {
 
 bot.on('location', message => {
     if (message.chat.id != main.groupTgId) return;
-    JSON_log(message);
     [
         text,
         chatId,

@@ -5,7 +5,7 @@
     "main": "main.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "node main.js"
+        "start": "nodemon --ext js --ignore '*.json' main.js"
     },
     "repository": {
         "type": "git",
@@ -22,6 +22,7 @@
         "jsonfile": "^4.0.0",
         "mime-types": "^2.1.18",
         "node-telegram-bot-api": "^0.30.0",
+        "sharp": "^0.23.4",
         "showdown": "^1.8.6",
         "string-format": "^2.0.0"
     }

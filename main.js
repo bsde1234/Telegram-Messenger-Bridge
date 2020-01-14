@@ -206,7 +206,9 @@ exports.botMessage = ({
     sticker,
     cb = () => {},
     isSliced,
-    isEdited
+    isEdited,
+    title,
+    options
 } = {}) => {
     [userName, threadId, replyToName, forwardFromName] = tgGetMsgrInfo(
         userId,
@@ -220,41 +222,52 @@ exports.botMessage = ({
     if (!threadId) return;
     if (replyToName) {
         text = isSliced
-            ? '*{}:*\n({}: {}...)\n{}'.format(
+            ? '{}:\n[{}]\n> {}...\n{}'.format(
                   userName,
-                  replyToName,
+                  lang.inReplyTo.format(replyToName),
                   replyToText,
                   text
               )
-            : '*{}:*\n({}: {})\n{}'.format(
+            : '{}:\n[{}]\n> {}\n{}'.format(
                   userName,
-                  replyToName,
+                  lang.inReplyTo.format(replyToName),
                   replyToText,
                   text
               );
     } else if (forwardFromName) {
-        text = '*{}:*\n*[{}]*\n{}'.format(
+        text = '{}:\n[{}]\n{}'.format(
             userName,
             lang.forwardedFrom.format(forwardFromName),
             text
         );
     } else if (isEdited) {
-        text = '> {}\n*{}:*\n{}'.format(lang.edited, userName, text);
+        text = '> {}\n{}:\n{}'.format(lang.edited, userName, text);
         text += addition;
-    } else text = '*{}:*\n{}'.format(userName, text);
+    } else text = '{}:\n{}'.format(userName, text);
     text += addition;
 
-    setImmediate(() =>
-        messenger.send(
-            removeEmpty({
-                text: text,
+    if (title) {
+        setImmediate(() =>
+            messenger.createPoll({
+                title: text + title,
                 threadId: threadId,
-                attachment: attachment,
-                sticker: sticker,
+                options: options,
                 cb: cb
             })
-        )
-    );
+        );
+    } else {
+        setImmediate(() =>
+            messenger.send(
+                removeEmpty({
+                    text: text,
+                    threadId: threadId,
+                    attachment: attachment,
+                    sticker: sticker,
+                    cb: cb
+                })
+            )
+        );
+    }
 };
 
 msgrGetTgInfo = (senderId, userName, threadId) => {

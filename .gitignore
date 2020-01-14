@@ -4,3 +4,4 @@ package-lock.json
 ._*
 node_modules/
 temp/
+*.png

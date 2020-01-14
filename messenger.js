@@ -34,9 +34,17 @@ if (fs.existsSync('appstate.json')) {
   fb({ appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8')) }, (err, api) => {
     if (err) return console.error(err);
     fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
+
     exports.send = ({ text = '', threadId = main.testMsgrId, attachment, sticker, cb = () => { } } = {}) => {
+      JSON_log(attachment);
       api.sendMessage(removeEmpty({ 'body': text, 'attachment': attachment, 'sticker': sticker }), threadId, () => cb());
     }
+
+    exports.createPoll = ({ title = '', threadId = main.testMsgrId, options, cb = () => { } } = {}) => {
+      JSON_log(options);
+      api.createPoll(title, threadId, options, () => cb())
+    }
+
     id = api.getCurrentUserID()
     exports.id = id;
     var stopListening = api.listenMqtt((err, event) => {
