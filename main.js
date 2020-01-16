@@ -1,14 +1,15 @@
 const format = require('string-format');
 const jsonfile = require('jsonfile');
 const fs = require('fs');
+
 format.extend(String.prototype, {});
 
-console.log('   ╭─────────────────────────────────────╮');
-console.log('   │                                     │');
-console.log('   │   錢幣幣 Desu                        │');
-console.log('   │   github.com/rexx0520/chat-bridge   │');
-console.log('   │                                     │');
-console.log('   ╰─────────────────────────────────────╯');
+console.log('   ╭──────────────────────────────────────────────╮');
+console.log('   │                                              │');
+console.log('   │    Telegram Messenger Bridge                 │');
+console.log('   │    Forked: github.com/rexx0520/chat-bridge   │');
+console.log('   │                                              │');
+console.log('   ╰──────────────────────────────────────────────╯');
 
 var [
     testMsgrId,
@@ -49,54 +50,23 @@ var init = () => {
                 obj.downloadToBuffer,
                 fs.existsSync('./lang/{}.json'.format(obj.lang))
                     ? require('./lang/{}.json'.format(obj.lang))
-                    : require('./lang/{}.json'.format('zh-TW'))
-            ];
-            [
-                irc,
-                ircChannel,
-                ircHost,
-                ircNick,
-                ircUserName,
-                ircRealName,
-                ircPort,
-                ircUseSSL,
-                ircPassword
-            ] = [
-                exports.irc,
-                exports.ircChannel,
-                exports.ircHost,
-                exports.ircNick,
-                exports.ircUserName,
-                exports.ircRealName,
-                exports.ircPort,
-                exports.ircUseSSL,
-                exports.ircPassword
-            ] = [
-                obj.irc,
-                obj.ircChannel,
-                obj.ircHost,
-                obj.ircNick,
-                obj.ircUserName,
-                obj.ircRealName,
-                obj.ircPort,
-                obj.ircUseSSL,
-                obj.ircPassword
+                    : require('./lang/{}.json'.format('en-US'))
             ];
 
             console.log('DEBUG = ' + debug.toString());
             console.log('Messenger: ' + messenger.toString());
             console.log('Telegram: ' + telegram.toString());
-            console.log('IRC: ' + irc.toString());
+
             setImmediate(() => {
-                bot = telegram
-                    ? require('./bot.js')
+                telegram = telegram
+                    ? require('./modules/telegram.js')
                     : { send: () => {}, init: () => {} };
-                bot.init();
+                telegram.init();
             });
             setImmediate(
                 () =>
                     (messenger = messenger
-                        ? require('./messenger.js')
+                        ? require('./modules/messenger.js')
                         : { send: () => {} })
             );
             chats = {
@@ -111,11 +81,10 @@ var init = () => {
                 debug: false,
                 previewTextLimit: 8,
                 downloadToBuffer: true,
-                lang: 'zh-TW',
+                lang: 'en-US',
 
                 groupTgId: -1234567890,
                 groupMsgrId: 12345678998765432,
-                ircChannel: '##IRCChannel',
 
                 messenger: true,
                 fbAccount: {
@@ -127,16 +96,7 @@ var init = () => {
                 tgUsers: {
                     1234567890: 'Nickname for specified ID'
                 },
-                tgToken: 'TG_BOT_TOKEN',
-
-                irc: true,
-                ircHost: 'irc.freenode.net',
-                ircNick: 'IRCNick',
-                ircUserName: 'YOUR_USERNAME',
-                ircRealName: 'IRC_REALNAME',
-                ircPassword: 'PASSWORD',
-                ircPort: 6697,
-                ircUseSSL: true
+                tgToken: 'TG_BOT_TOKEN'
             },
             { spaces: 2 },
             () => {
@@ -154,6 +114,7 @@ const removeEmpty = x => {
     Object.keys(obj).forEach(key => obj[key] == null && delete obj[key]);
     return obj;
 };
+
 getChatId = value => {
     var value = parseInt(value);
     return value in chats
@@ -172,7 +133,7 @@ tgGetMsgrInfo = (
 ) => {
     userName =
         userId in tgUsers ? tgUsers[userId] : userName ? userName : userId;
-    if (replyToId != bot.id) {
+    if (replyToId != telegram.id) {
         replyToName =
             replyToId in tgUsers
                 ? tgUsers[replyId]
@@ -190,7 +151,7 @@ tgGetMsgrInfo = (
     return [userName, threadId, replyToName, forwardFromName];
 };
 
-exports.botMessage = ({
+exports.telegramMessage = ({
     chatId,
     userId,
     text = '',
@@ -222,31 +183,33 @@ exports.botMessage = ({
     if (!threadId) return;
     if (replyToName) {
         text = isSliced
-            ? '{}:\n[{}]\n> {}...\n{}'.format(
+            ? '*{}:*\n*[{}]*\n> {}...\n{}'.format(
                   userName,
                   lang.inReplyTo.format(replyToName),
                   replyToText,
                   text
               )
-            : '{}:\n[{}]\n> {}\n{}'.format(
+            : '*{}:*\n*[{}]*\n> {}\n{}'.format(
                   userName,
                   lang.inReplyTo.format(replyToName),
                   replyToText,
                   text
               );
     } else if (forwardFromName) {
-        text = '{}:\n[{}]\n{}'.format(
+        text = '*{}:*\n*[{}]*\n{}'.format(
             userName,
             lang.forwardedFrom.format(forwardFromName),
             text
         );
     } else if (isEdited) {
-        text = '> {}\n{}:\n{}'.format(lang.edited, userName, text);
+        text = '> {}\n*{}:*\n{}'.format(lang.edited, userName, text);
         text += addition;
-    } else text = '{}:\n{}'.format(userName, text);
+    } else text = '*{}:*\n{}'.format(userName, text);
     text += addition;
 
     if (title) {
+        // If Poll
+        text = text.split('*').join('');
         setImmediate(() =>
             messenger.createPoll({
                 title: text + title,
@@ -290,33 +253,35 @@ exports.messengerMessage = ({
     if (!chatId) return;
     if (photo) {
         setImmediate(() =>
-            bot.send({
+            telegram.send({
                 photo: photo,
                 chatId: chatId,
-                text: '<{}> '.format(userName) + addition,
+                text: '*{}:*\n'.format(userName) + addition,
                 cb: cb
             })
         );
     } else if (file) {
         setImmediate(() =>
-            bot.send({
+            telegram.send({
                 doc: file,
                 chatId: chatId,
-                text: '<{}> '.format(userName) + addition,
+                text: '*{}:*\n'.format(userName) + addition,
                 cb: cb
             })
         );
     } else if (video) {
         setImmediate(() =>
-            bot.send({
+            telegram.send({
                 video: video,
                 chatId: chatId,
-                text: '<{}> '.format(userName) + addition,
+                text: '*{}:*\n'.format(userName) + addition,
                 cb: cb
             })
         );
     } else {
-        text = '<{}>: {}'.format(userName, addition);
-        setImmediate(() => bot.send({ text: text, chatId: chatId, cb: cb }));
+        text = '*{}:*\n{}'.format(userName, addition);
+        setImmediate(() =>
+            telegram.send({ text: text, chatId: chatId, cb: cb })
+        );
     }
 };

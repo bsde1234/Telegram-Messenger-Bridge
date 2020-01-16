@@ -1,0 +1,12 @@
+{
+    "configError": "Please correct config.json!",
+    "forwardedFrom": "Forwarded From {}",
+    "inReplyTo": "In Reply to {}",
+    "edited": "edited",
+    "photo": "Photo",
+    "file": "File",
+    "video": "Video",
+    "sessionSaved": "Session Saved, Please Restart",
+    "name": "Name",
+    "id": "ID"
+}

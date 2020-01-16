@@ -1,12 +1,12 @@
 // 我是錢幣幣
 const fs = require('fs');
-const main = require('./main.js')
+const main = require('../main.js')
 const http = require('http');
 const https = require('https');
 const fb = require("facebook-chat-api");
 const fbAccount = main.fbAccount;
 const buffer = require('request').defaults({ encoding: null });
-const JSON_log = require("./JSON_log");
+const JSON_log = require("../helpers/JSON_log");
 const format = require('string-format')
 const lang = main.lang
 
@@ -36,12 +36,10 @@ if (fs.existsSync('appstate.json')) {
     fs.writeFileSync('appstate.json', JSON.stringify(api.getAppState()));
 
     exports.send = ({ text = '', threadId = main.testMsgrId, attachment, sticker, cb = () => { } } = {}) => {
-      JSON_log(attachment);
       api.sendMessage(removeEmpty({ 'body': text, 'attachment': attachment, 'sticker': sticker }), threadId, () => cb());
     }
 
     exports.createPoll = ({ title = '', threadId = main.testMsgrId, options, cb = () => { } } = {}) => {
-      JSON_log(options);
       api.createPoll(title, threadId, options, () => cb())
     }
 
@@ -101,14 +99,14 @@ if (fs.existsSync('appstate.json')) {
                       break;
                     case "share":
                       if (!(i.url.includes("//l.facebook.com/l.php?u="))) { // if url is a Facebook resource
-                        let linkHTML = '<a href="{}">{}</a>'.format(i.url, i.description ? i.source + ': ' + i.description.substr(0, main.previewTextLimit) + (i.description.length <= main.previewTextLimit ? '' : '...') : i.title == '' ? i.source + " 的貼文" : i.title)
+                        let linkHTML = '[{}]({})'.format(i.description ? i.source + ': ' + i.description.substr(0, main.previewTextLimit) + (i.description.length <= main.previewTextLimit ? '' : '...') : i.title == '' ? i.source + " Post" : i.title, i.url)
                         let text = body + '\n' + linkHTML;
                         setImmediate(() => main.messengerMessage({ 'userName': userName, 'addition': text, 'threadId': threadID, 'senderID': senderID }))
                         break;
                       }
                       else {
                         let url = decodeURIComponent(i.url.split('//l.facebook.com/l.php?u=')[1])
-                        let text = '{}\n<a href="{}">{}</a>'.format(body, url, i.title)
+                        let text = '[{}]({})'.format(body,  i.title, url)
                         setImmediate(() => main.messengerMessage({ 'userName': userName, 'addition': text, 'threadId': threadID, 'senderID': senderID }))
                         break;
                       }
