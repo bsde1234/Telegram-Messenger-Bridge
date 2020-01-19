@@ -2,8 +2,6 @@ const format = require('string-format');
 const jsonfile = require('jsonfile');
 const fs = require('fs');
 
-format.extend(String.prototype, {});
-
 console.log('   ╭──────────────────────────────────────────────╮');
 console.log('   │                                              │');
 console.log('   │    Telegram Messenger Bridge                 │');
@@ -11,8 +9,14 @@ console.log('   │    Forked: github.com/rexx0520/chat-bridge   │');
 console.log('   │                                              │');
 console.log('   ╰──────────────────────────────────────────────╯');
 
-var [
-    testMsgrId,
+format.extend(String.prototype, {});
+const removeEmpty = x => {
+    var obj = Object.assign({}, x);
+    Object.keys(obj).forEach(key => obj[key] == null && delete obj[key]);
+    return obj;
+};
+
+var testMsgrId,
     testTgId,
     groupTgId,
     groupMsgrId,
@@ -23,35 +27,26 @@ var [
     previewTextLimit,
     downloadToBuffer,
     chats,
-    lang
-] = [];
+    lang;
+
 var init = () => {
     if (fs.existsSync('config.json')) {
         jsonfile.readFile('./config.json', (err, obj) => {
-            [groupMsgrId, messenger, fbAccount] = [
-                exports.groupMsgrId,
-                exports.messenger,
-                exports.fbAccount
-            ] = [obj.groupMsgrId, obj.messenger, obj.fbAccount];
-            [groupTgId, tgUsers, tgToken, telegram] = [
-                exports.groupTgId,
-                exports.tgUsers,
-                exports.tgToken,
-                exports.telegram
-            ] = [obj.groupTgId, obj.tgUsers, obj.tgToken, obj.telegram];
-            [debug, previewTextLimit, downloadToBuffer, lang] = [
-                exports.debug,
-                exports.previewTextLimit,
-                exports.downloadToBuffer,
-                exports.lang
-            ] = [
-                obj.debug,
-                obj.previewTextLimit,
-                obj.downloadToBuffer,
-                fs.existsSync('./lang/{}.json'.format(obj.lang))
-                    ? require('./lang/{}.json'.format(obj.lang))
-                    : require('./lang/{}.json'.format('en-US'))
-            ];
+            groupMsgrId = exports.groupMsgrId = obj.groupMsgrId;
+            messenger = exports.messenger = obj.messenger;
+            fbAccount = exports.fbAccount = obj.fbAccount;
+            groupTgId = exports.groupTgId = obj.groupTgId;
+            tgUsers = exports.tgUsers = obj.tgUsers;
+            tgToken = exports.tgToken = obj.tgToken;
+            telegram = exports.telegram = obj.telegram;
+            debug = exports.debug = obj.debug;
+            previewTextLimit = exports.previewTextLimit = obj.previewTextLimit;
+            downloadToBuffer = exports.downloadToBuffer = obj.downloadToBuffer;
+            lang = exports.lang = fs.existsSync(
+                './lang/{}.json'.format(obj.lang)
+            )
+                ? require('./lang/{}.json'.format(obj.lang))
+                : require('./lang/{}.json'.format('en-US'));
 
             console.log('DEBUG = ' + debug.toString());
             console.log('Messenger: ' + messenger.toString());
@@ -63,12 +58,12 @@ var init = () => {
                     : { send: () => {}, init: () => {} };
                 telegram.init();
             });
-            setImmediate(
-                () =>
-                    (messenger = messenger
-                        ? require('./modules/messenger.js')
-                        : { send: () => {} })
-            );
+            setImmediate(() => {
+                messenger = messenger
+                    ? require('./modules/messenger.js')
+                    : { send: () => {} };
+            });
+
             chats = {
                 [groupTgId]: groupMsgrId,
                 [testTgId]: testMsgrId
@@ -82,16 +77,13 @@ var init = () => {
                 previewTextLimit: 8,
                 downloadToBuffer: true,
                 lang: 'en-US',
-
                 groupTgId: -1234567890,
                 groupMsgrId: 12345678998765432,
-
                 messenger: true,
                 fbAccount: {
                     email: 'YOUR_FB_ACCOUNT@EMAIL.COM',
                     password: 'YOUR_FB_PASSWORD'
                 },
-
                 telegram: true,
                 tgUsers: {
                     1234567890: 'Nickname for specified ID'
@@ -108,51 +100,28 @@ var init = () => {
 };
 
 init();
-
-const removeEmpty = x => {
-    var obj = Object.assign({}, x);
-    Object.keys(obj).forEach(key => obj[key] == null && delete obj[key]);
-    return obj;
-};
-
-getChatId = value => {
-    var value = parseInt(value);
-    return value in chats
-        ? chats[value]
-        : parseInt(Object.keys(chats).find(key => chats[key] === value));
-};
-
 tgGetMsgrInfo = (
     userId,
     userName,
-    chatId,
     replyToId,
     replyToName,
     forwardFromId,
     forwardFromName
 ) => {
-    userName =
-        userId in tgUsers ? tgUsers[userId] : userName ? userName : userId;
+    userName = userId in tgUsers ? tgUsers[userId] : userName || userId;
     if (replyToId != telegram.id) {
         replyToName =
-            replyToId in tgUsers
-                ? tgUsers[replyId]
-                : replyToName
-                ? replyToName
-                : replyToId;
+            replyToId in tgUsers ? tgUsers[replyId] : replyToName || replyToId;
     }
     forwardFromName =
         forwardFromId in tgUsers
             ? tgUsers[forwardFromId]
-            : forwardFromName
-            ? forwardFromName
-            : forwardFromId;
+            : forwardFromName || forwardFromId;
     var threadId = groupMsgrId;
     return [userName, threadId, replyToName, forwardFromName];
 };
 
 exports.telegramMessage = ({
-    chatId,
     userId,
     text = '',
     userName,
@@ -163,23 +132,22 @@ exports.telegramMessage = ({
     forwardFromName,
     replyToText,
     attachment,
-    attachmentType,
     sticker,
     cb = () => {},
     isSliced,
     isEdited,
     title,
     options
-} = {}) => {
+}) => {
     [userName, threadId, replyToName, forwardFromName] = tgGetMsgrInfo(
         userId,
         userName,
-        chatId,
         replyToId,
         replyToName,
         forwardFromId,
         forwardFromName
     );
+
     if (!threadId) return;
     if (replyToName) {
         text = isSliced
@@ -208,7 +176,6 @@ exports.telegramMessage = ({
     text += addition;
 
     if (title) {
-        // If Poll
         text = text.split('*').join('');
         setImmediate(() =>
             messenger.createPoll({
@@ -233,8 +200,8 @@ exports.telegramMessage = ({
     }
 };
 
-msgrGetTgInfo = (senderId, userName, threadId) => {
-    userName = userName ? userName : senderId;
+msgrGetTgInfo = (senderId, userName) => {
+    userName = userName || senderId;
     var chatId = groupTgId;
     return [userName, chatId];
 };
@@ -244,12 +211,11 @@ exports.messengerMessage = ({
     file,
     video,
     senderId,
-    threadId,
     userName,
     addition = '',
     cb = () => {}
 } = {}) => {
-    [userName, chatId] = msgrGetTgInfo(senderId, userName, threadId);
+    [userName, chatId] = msgrGetTgInfo(senderId, userName);
     if (!chatId) return;
     if (photo) {
         setImmediate(() =>

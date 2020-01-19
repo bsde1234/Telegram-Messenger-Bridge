@@ -1,7 +1,7 @@
-// From https://github.com/ed-asriyan/tgs-to-gif
+// Convert .tgs animated stickers, from telegram, to gif
+// Modified  From https://github.com/ed-asriyan/tgs-to-gif
 
 const fs = require('fs');
-const path = require('path');
 const puppeteer = require('puppeteer');
 const renderLottie = require('puppeteer-lottie');
 const tempy = require('tempy');
