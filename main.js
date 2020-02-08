@@ -1,6 +1,7 @@
 const format = require('string-format');
 const jsonfile = require('jsonfile');
 const fs = require('fs');
+const { JSON_log, removeEmpty } = require('../helpers/utils');
 
 console.log('   ╭──────────────────────────────────────────────╮');
 console.log('   │                                              │');
@@ -10,13 +11,8 @@ console.log('   │                                              │');
 console.log('   ╰──────────────────────────────────────────────╯');
 
 format.extend(String.prototype, {});
-const removeEmpty = x => {
-    var obj = Object.assign({}, x);
-    Object.keys(obj).forEach(key => obj[key] == null && delete obj[key]);
-    return obj;
-};
 
-var testMsgrId,
+let testMsgrId,
     testTgId,
     groupTgId,
     groupMsgrId,
@@ -29,7 +25,7 @@ var testMsgrId,
     chats,
     lang;
 
-var init = () => {
+let init = () => {
     if (fs.existsSync('config.json')) {
         jsonfile.readFile('./config.json', (err, obj) => {
             groupMsgrId = exports.groupMsgrId = obj.groupMsgrId;
@@ -117,8 +113,14 @@ tgGetMsgrInfo = (
         forwardFromId in tgUsers
             ? tgUsers[forwardFromId]
             : forwardFromName || forwardFromId;
-    var threadId = groupMsgrId;
+    let threadId = groupMsgrId;
     return [userName, threadId, replyToName, forwardFromName];
+};
+
+msgrGetTgInfo = (senderId, userName) => {
+    userName = userName || senderId;
+    let chatId = groupTgId;
+    return [userName, chatId];
 };
 
 exports.telegramMessage = ({
@@ -200,52 +202,75 @@ exports.telegramMessage = ({
     }
 };
 
-msgrGetTgInfo = (senderId, userName) => {
-    userName = userName || senderId;
-    var chatId = groupTgId;
-    return [userName, chatId];
-};
-
 exports.messengerMessage = ({
     photo,
+    filename,
     file,
     video,
     senderId,
     userName,
     addition = '',
+    replyToName,
+    replyToText,
+    forwardFromName,
     cb = () => {}
 } = {}) => {
     [userName, chatId] = msgrGetTgInfo(senderId, userName);
+
     if (!chatId) return;
+
+    let text = '*{}:*\n{}'.format(userName, addition);
+    const generalAttachmentcb = () =>
+        downloadToBuffer ? () => {} : fs.unlink(fileName);
+    if (replyToName) {
+        text = '*{}:*\n*[{}]*\n> {}\n{}'.format(
+            userName,
+            lang.inReplyTo.format(replyToName),
+            replyToText,
+            addition
+        );
+    } else if (forwardFromName) {
+        text = '*{}:*\n*[{}]*\n{}'.format(
+            userName,
+            lang.forwardedFrom.format(forwardFromName),
+            addition
+        );
+    }
+
     if (photo) {
-        setImmediate(() =>
-            telegram.send({
-                photo: photo,
-                chatId: chatId,
-                text: '*{}:*\n'.format(userName) + addition,
-                cb: cb
-            })
-        );
+        photo(x => {
+            setImmediate(() =>
+                telegram.send({
+                    photo: x,
+                    chatId: chatId,
+                    text: text,
+                    cb: generalAttachmentcb
+                })
+            );
+        });
     } else if (file) {
-        setImmediate(() =>
-            telegram.send({
-                doc: file,
-                chatId: chatId,
-                text: '*{}:*\n'.format(userName) + addition,
-                cb: cb
-            })
-        );
+        file(x => {
+            setImmediate(() =>
+                telegram.send({
+                    doc: x,
+                    chatId: chatId,
+                    text: text,
+                    cb: generalAttachmentcb
+                })
+            );
+        });
     } else if (video) {
-        setImmediate(() =>
-            telegram.send({
-                video: video,
-                chatId: chatId,
-                text: '*{}:*\n'.format(userName) + addition,
-                cb: cb
-            })
-        );
+        video(x => {
+            setImmediate(() =>
+                telegram.send({
+                    video: x,
+                    chatId: chatId,
+                    text: text,
+                    cb: generalAttachmentcb
+                })
+            );
+        });
     } else {
-        text = '*{}:*\n{}'.format(userName, addition);
         setImmediate(() =>
             telegram.send({ text: text, chatId: chatId, cb: cb })
         );

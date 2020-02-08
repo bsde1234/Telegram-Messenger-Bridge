@@ -5,20 +5,24 @@ const sharp = require('sharp');
 const format = require('string-format');
 const phoneNumber = require('awesome-phonenumber');
 const main = require('../main.js');
-const JSON_log = require('../helpers/JSON_log');
 const TelegramBot = require('node-telegram-bot-api');
 const convertFile = require('../helpers/tgs-to-gif');
+const {
+    JSON_log,
+    removeEmpty
+} = require('../helpers/utils');
 
 const lang = main.lang;
 const token = main.tgToken;
 const telegram = new TelegramBot(token, { polling: true });
 const previewTextLimit = main.previewTextLimit;
-
 const firstUpperCase = ([first, ...rest]) =>
     first.toUpperCase() + rest.join('');
+
 format.extend(String.prototype, {});
+
 String.prototype.replaceAll = function(search, replacement) {
-    var target = this;
+    let target = this;
     return target.replace(new RegExp(search, 'g'), replacement);
 };
 
@@ -148,16 +152,16 @@ exports.send = ({
 };
 
 getMessageBasicInfo = message => {
-    var text = message.caption || message.text || '';
-    var chatId = message.chat.id;
-    var userId = message.from.id;
-    var userName = message.from.first_name;
-    var addition = '';
+    let text = message.caption || message.text || '';
+    let chatId = message.chat.id;
+    let userId = message.from.id;
+    let userName = message.from.first_name;
+    let addition = '';
 
     if (message.reply_to_message) {
-        var replyToId = message.reply_to_message.from.id;
-        var replyToName = message.reply_to_message.from.first_name;
-        var replyToText =
+        let replyToId = message.reply_to_message.from.id;
+        let replyToName = message.reply_to_message.from.first_name;
+        let replyToText =
             message.reply_to_message.caption || message.reply_to_message.text;
         if (!replyToText) {
             replyToText = '{}'.format(
@@ -181,12 +185,12 @@ getMessageBasicInfo = message => {
                         .replace('_note', ' Note')
                 )
             );
-            var noTextInOriginMessage = true;
+            let noTextInOriginMessage = true;
         }
         if (replyToId == exports.id) {
             replyToName = message.reply_to_message.text.split(':\n')[0];
-            var offset = ':\n'.length;
-            var isSliced = noTextInOriginMessage
+            let offset = ':\n'.length;
+            let isSliced = noTextInOriginMessage
                 ? false
                 : replyToText.length >
                   replyToName.length + offset + previewTextLimit;
@@ -197,7 +201,7 @@ getMessageBasicInfo = message => {
                       previewTextLimit
                   );
         } else {
-            var isSliced = noTextInOriginMessage
+            let isSliced = noTextInOriginMessage
                 ? false
                 : replyToText.length > previewTextLimit;
             replyToText = noTextInOriginMessage
@@ -206,19 +210,19 @@ getMessageBasicInfo = message => {
         }
     }
     if (message.forward_from) {
-        var forwardFromId = message.forward_from.id;
+        let forwardFromId = message.forward_from.id;
         if (forwardFromId == exports.id)
-            var forwardFromName = message.forward_from.text.split(':\n')[0];
+            let forwardFromName = message.forward_from.text.split(':\n')[0];
         else
-            var forwardFromName =
+            let forwardFromName =
                 message.forward_from.first_name +
                 (message.forward_from.last_name
                     ? ' ' + message.forward_from.last_name
                     : '');
     }
     if (message.forward_from_chat) {
-        var forwardFromId = message.forward_from_chat.id;
-        var forwardFromName = message.forward_from_chat.title
+        let forwardFromId = message.forward_from_chat.id;
+        let forwardFromName = message.forward_from_chat.title
             ? message.forward_from_chat.title
             : '@' + message.forward_from_chat.username;
     }
@@ -332,11 +336,11 @@ telegram.on('message', message => {
         isSliced
     ] = getMessageBasicInfo(message);
     if (message.poll) {
-        var poll_options = new Object();
+        let poll_options = new Object();
 
         message['poll'].options.forEach(value => {
-            var option_text = value.text;
-            var option_count = value.voter_count;
+            let option_text = value.text;
+            let option_count = value.voter_count;
             poll_options[option_text] = option_count;
         });
 
@@ -375,8 +379,8 @@ telegram.on('sticker', message => {
         isSliced
     ] = getMessageBasicInfo(message);
 
-    var file = message['sticker'];
-    var fileId = file.file_id;
+    let file = message['sticker'];
+    let fileId = file.file_id;
 
     if (message['sticker'].is_animated) {
         const original_attachment = telegram.getFileStream(fileId);
@@ -398,7 +402,7 @@ telegram.on('sticker', message => {
         });
     } else {
         setImmediate(() => {
-            var original_attachment = telegram.getFileStream(fileId);
+            let original_attachment = telegram.getFileStream(fileId);
             original_attachment.path += '.webp';
             const filename = 'sticker.png';
             const transformer = sharp()
@@ -443,14 +447,14 @@ telegram.on('sticker', message => {
             forwardFromName,
             isSliced
         ] = getMessageBasicInfo(message);
-        var file = x == 'photo' ? message[x].pop() : message[x];
-        var fileId = file.file_id;
-        var extension = '';
+        let file = x == 'photo' ? message[x].pop() : message[x];
+        let fileId = file.file_id;
+        let extension = '';
 
         if (message['animation']) {
             extension = 'gif';
             setImmediate(() => {
-                var original_attachment = telegram.getFileStream(fileId);
+                let original_attachment = telegram.getFileStream(fileId);
                 original_attachment.path += '.' + extension;
                 main.telegramMessage({
                     userId: userId,
@@ -485,7 +489,7 @@ telegram.on('sticker', message => {
         }
 
         setImmediate(() => {
-            var original_attachment = telegram.getFileStream(fileId);
+            let original_attachment = telegram.getFileStream(fileId);
             original_attachment.path = message['document']
                 ? message['document'].file_name
                 : original_attachment.path + '.' + extension;
@@ -520,7 +524,7 @@ telegram.on('location', message => {
         forwardFromName,
         isSliced
     ] = getMessageBasicInfo(message);
-    var location = message.location;
+    let location = message.location;
     addition += 'https://www.google.com/maps/@{},{},16z'.format(
         location.latitude,
         location.longitude
@@ -556,7 +560,7 @@ telegram.on('contact', message => {
         forwardFromName,
         isSliced
     ] = getMessageBasicInfo(message);
-    var contact = message.contact;
+    let contact = message.contact;
 
     if (contact.first_name) {
         addition += contact.last_name
